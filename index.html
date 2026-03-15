@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MedBuddy - Kid-Friendly Med Adherence</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/canvas-confetti@1.6.0/dist/confetti.browser.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { nunito: ['Nunito', 'sans-serif'] },
+      colors: {
+        primary: '#6C5CE7',
+        secondary: '#00CEC9',
+        accent: '#FDCB6E',
+        danger: '#FF6B6B',
+        success: '#00B894',
+        bg: '#F8F7FF',
+        card: '#FFFFFF',
+        bubble: '#EDE9FF',
+        bubbleBot: '#E8FFF8',
+      }
+    }
+  }
+}
+</script>
+<style>
+* { font-family: 'Nunito', sans-serif; -webkit-tap-highlight-color: transparent; }
+body { background: #F8F7FF; overscroll-behavior: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+@keyframes bounceIn { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.05); } 70% { transform: scale(0.9); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 5px rgba(108,92,231,0.3); } 50% { box-shadow: 0 0 20px rgba(108,92,231,0.6); } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes typing { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+.bounce-in { animation: bounceIn 0.5s ease forwards; }
+.slide-up { animation: slideUp 0.3s ease forwards; }
+.pulse-glow { animation: pulse-glow 2s infinite; }
+.float-anim { animation: float 3s ease-in-out infinite; }
+.typing-dot { animation: typing 1.4s infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+.tab-active { border-bottom: 3px solid #6C5CE7; color: #6C5CE7; font-weight: 700; }
+.sticker { transition: transform 0.2s; cursor: pointer; }
+.sticker:hover { transform: scale(1.2); }
+.med-card { transition: all 0.2s; }
+.med-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(108,92,231,0.15); }
+input, select, textarea { font-size: 16px !important; }
+.progress-ring { transform: rotate(-90deg); }
+</style>
+</head>
+<body class="bg-bg min-h-screen">
+
+<div id="app" class="max-w-md mx-auto min-h-screen flex flex-col relative">
+  <!-- Splash Screen -->
+  <div id="splash-screen" class="fixed inset-0 z-50 bg-primary flex flex-col items-center justify-center text-white">
+    <div class="text-8xl float-anim mb-4">🤖</div>
+    <h1 class="text-4xl font-black mb-2">MedBuddy</h1>
+    <p class="text-lg opacity-80">Your friendly medicine pal!</p>
+    <div class="mt-8 flex gap-2">
+      <div class="w-3 h-3 bg-white rounded-full typing-dot"></div>
+      <div class="w-3 h-3 bg-white rounded-full typing-dot"></div>
+      <div class="w-3 h-3 bg-white rounded-full typing-dot"></div>
+    </div>
+  </div>
+
+  <!-- Onboarding -->
+  <div id="onboarding" class="hidden fixed inset-0 z-40 bg-bg flex flex-col">
+    <div id="onboard-steps" class="flex-1 flex flex-col items-center justify-center p-6">
+      <!-- Step 1: Role Selection -->
+      <div id="onboard-step-1" class="w-full text-center">
+        <div class="text-6xl mb-4">👋</div>
+        <h2 class="text-2xl font-black text-primary mb-2">Welcome to MedBuddy!</h2>
+        <p class="text-gray-500 mb-8">Who are you?</p>
+        <div class="grid grid-cols-2 gap-4 max-w-xs mx-auto">
+          <button onclick="selectRole('child')" class="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all border-2 border-transparent hover:border-primary">
+            <div class="text-4xl mb-2">🧒</div>
+            <div class="font-bold text-gray-700">I'm a Kid</div>
+          </button>
+          <button onclick="selectRole('parent')" class="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all border-2 border-transparent hover:border-primary">
+            <div class="text-4xl mb-2">👨‍👩‍👧</div>
+            <div class="font-bold text-gray-700">Parent</div>
+          </button>
+          <button onclick="selectRole('nurse')" class="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all border-2 border-transparent hover:border-primary">
+            <div class="text-4xl mb-2">👩‍⚕️</div>
+            <div class="font-bold text-gray-700">School Nurse</div>
+          </button>
+          <button onclick="selectRole('clinician')" class="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all border-2 border-transparent hover:border-primary">
+            <div class="text-4xl mb-2">🩺</div>
+            <div class="font-bold text-gray-700">Clinician</div>
+          </button>
+        </div>
+      </div>
+      <!-- Step 2: Name -->
+      <div id="onboard-step-2" class="w-full text-center hidden">
+        <div class="text-6xl mb-4">✨</div>
+        <h2 class="text-2xl font-black text-primary mb-2">What's your name?</h2>
+        <p class="text-gray-500 mb-6" id="name-hint">We'll use this to personalize your experience</p>
+        <input id="user-name" type="text" placeholder="Type your name..." class="w-full max-w-xs mx-auto block bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-center text-lg font-bold focus:border-primary focus:outline-none transition-all">
+        <button onclick="submitName()" class="mt-6 bg-primary text-white px-10 py-4 rounded-2xl font-bold text-lg hover:bg-opacity-90 transition-all min-w-[200px]">Next →</button>
+      </div>
+      <!-- Step 3: Avatar (child only) -->
+      <div id="onboard-step-3" class="w-full text-center hidden">
+        <div class="text-6xl mb-4">🎨</div>
+        <h2 class="text-2xl font-black text-primary mb-2">Pick your buddy!</h2>
+        <p class="text-gray-500 mb-6">Choose a friend to help with your meds</p>
+        <div class="flex flex-wrap justify-center gap-4 mb-6" id="avatar-grid"></div>
+        <button onclick="submitAvatar()" class="mt-4 bg-primary text-white px-10 py-4 rounded-2xl font-bold text-lg hover:bg-opacity-90 transition-all min-w-[200px]">Let's Go! 🚀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App Header -->
+  <header id="main-header" class="hidden bg-white shadow-sm sticky top-0 z-30 px-4 py-3">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div id="header-avatar" class="text-3xl"></div>
+        <div>
+          <h1 class="text-lg font-black text-primary">MedBuddy</h1>
+          <p id="header-greeting" class="text-xs text-gray-400"></p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="streak-badge" class="hidden bg-accent text-gray-800 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+          🔥 <span id="streak-count">0</span>
+        </div>
+        <div id="stars-badge" class="hidden bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+          ⭐ <span id="stars-count">0</span>
+        </div>
+        <button onclick="openSettings()" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">
+          ⚙️
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Tab Navigation -->
+  <nav id="tab-nav" class="hidden bg-white border-b flex justify-around text-sm sticky top-[60px] z-20">
+    <button onclick="switchTab('chat')" id="tab-chat" class="flex-1 py-3 text-center tab-active flex flex-col items-center gap-1">
+      <span>💬</span><span class="text-xs">Chat</span>
+    </button>
+    <button onclick="switchTab('meds')" id="tab-meds" class="flex-1 py-3 text-center text-gray-400 flex flex-col items-center gap-1">
+      <span>💊</span><span class="text-xs">Meds</span>
+    </button>
+    <button onclick="switchTab('progress')" id="tab-progress" class="flex-1 py-3 text-center text-gray-400 flex flex-col items-center gap-1">
+      <span>📊</span><span class="text-xs">Progress</span>
+    </button>
+    <button onclick="switchTab('dashboard')" id="tab-dashboard" class="flex-1 py-3 text-center text-gray-400 flex flex-col items-center gap-1">
+      <span>📋</span><span class="text-xs" id="tab-dashboard-label">Dashboard</span>
+    </button>
+  </nav>
+
+  <!-- Chat View -->
+  <div id="view-chat" class="flex-1 flex flex-col hidden">
+    <div id="chat-messages" class="flex-1 overflow-y-auto no-scrollbar p-4 pb-32 space-y-3">
+    </div>
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t p-3 max-w-md mx-auto">
+      <div id="quick-actions" class="flex gap-2 mb-2 overflow-x-auto no-scrollbar pb-1">
+      </div>
+      <div class="flex gap-2">
+        <input id="chat-input" type="text" placeholder="Type a message..." class="flex-1 bg-gray-100 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary font-semibold" onkeydown="if(event.key==='Enter')sendMessage()">
+        <button onclick="sendMessage()" class="bg-primary text-white w-12 h-12 rounded-2xl flex items-center justify-center text-xl hover:bg-opacity-90 transition-all pulse-glow">📤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Meds View -->
+  <div id="view-meds" class="flex-1 overflow-y-auto no-scrollbar p-4 pb-24 hidden">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-black text-gray-800">💊 Medications</h2>
+      <button onclick="openAddMed()" class="bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-opacity-90 transition-all">+ Add Med</button>
+    </div>
+    <div id="meds-list" class="space-y-3"></div>
+    <div id="no-meds" class="hidden text-center py-12">
+      <div class="text-6xl mb-4">💊</div>
+      <p class="text-gray-400 font-semibold">No medications added yet</p>
+      <p class="text-gray-300 text-sm mt-1">Tap + Add Med to get started!</p>
+    </div>
+    <div id="schedule-section" class="mt-6 hidden">
+      <h3 class="text-lg font-bold text-gray-700 mb-3">📅 Today's Schedule</h3>
+      <div id="schedule-list" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <!-- Progress View -->
+  <div id="view-progress" class="flex-1 overflow-y-auto no-scrollbar p-4 pb-24 hidden">
+    <h2 class="text-xl font-black text-gray-800 mb-4">📊 My Progress</h2>
+    <div class="bg-white rounded-2xl p-5 shadow-md mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-bold text-gray-700">Weekly Adherence</h3>
+        <span id="weekly-pct" class="text-2xl font-black text-primary">0%</span>
+      </div>
+      <div class="w-full bg-gray-100 rounded-full h-4 overflow-hidden">
+        <div id="weekly-bar" class="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="grid grid-cols-3 gap-3 mb-4">
+      <div class="bg-white rounded-2xl p-4 shadow-md text-center">
+        <div class="text-2xl font-black text-success" id="stat-taken">0</div>
+        <div class="text-xs text-gray-400 font-semibold">Taken ✅</div>
+      </div>
+      <div class="bg-white rounded-2xl p-4 shadow-md text-center">
+        <div class="text-2xl font-black text-danger" id="stat-missed">0</div>
+        <div class="text-xs text-gray-400 font-semibold">Missed ❌</div>
+      </div>
+      <div class="bg-white rounded-2xl p-4 shadow-md text-center">
+        <div class="text-2xl font-black text-accent" id="stat-streak">0</div>
+        <div class="text-xs text-gray-400 font-semibold">Streak 🔥</div>
+      </div>
+    </div>
+    <div class="bg-white rounded-2xl p-5 shadow-md mb-4">
+      <h3 class="font-bold text-gray-700 mb-3">🏆 Sticker Collection</h3>
+      <div id="sticker-collection" class="flex flex-wrap gap-3"></div>
+      <p id="no-stickers" class="text-gray-300 text-sm text-center py-4 hidden">Take your meds to earn stickers!</p>
+    </div>
+    <div class="bg-white rounded-2xl p-5 shadow-md mb-4">
+      <h3 class="font-bold text-gray-700 mb-3">📆 This Week</h3>
+      <div id="week-calendar" class="grid grid-cols-7 gap-2"></div>
+    </div>
+    <div id="adherence-log" class="bg-white rounded-2xl p-5 shadow-md">
+      <h3 class="font-bold text-gray-700 mb-3">📝 Recent Activity</h3>
+      <div id="log-list" class="space-y-2 max-h-60 overflow-y-auto no-scrollbar"></div>
+    </div>
+  </div>
+
+  <!-- Dashboard View (Parent/Nurse/Clinician) -->
+  <div id="view-dashboard" class="flex-1 overflow-y-auto no-scrollbar p-4 pb-24 hidden">
+    <h2 class="text-xl font-black text-gray-800 mb-4" id="dashboard-title">📋 Dashboard</h2>
+    <div id="dashboard-content"></div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-end justify-center">
+    <div class="bg-white rounded-t-3xl w-full max-w-md p-6 slide-up max-h-[80vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-black text-gray-800">⚙️ Settings</h2>
+        <button onclick="closeSettings()" class="text-gray-400 text-2xl">✕</button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="text-sm font-bold text-gray-500 block mb-1">Your Name</label>
+          <input id="settings-name" type="text" class="w-full bg-gray-100 rounded-xl px-4 py-3 font-semibold focus:outline-none focus:ring-2 focus:ring-primary">
+        </div>
+        <div>
+          <label class="text-sm font-bold text-gray-500 block mb-1">School Schedule</label>
+          <textarea id="settings-schedule" placeholder="e.g. Math 8:00-9:00, Lunch 12:00-12:30..." class="w-full bg-gray-100 rounded-xl px-4 py-3 font-semibold focus:outline-none focus:ring-2 focus:ring-primary h-24 resize-none"></textarea>
+        </div>
+        <div>
+          <label class="text-sm font-bold text-gray-500 block mb-1">Notification Sound</label>
+          <select id="settings-sound" class="w-full bg-gray-100 rounded-xl px-4 py-3 font-semibold focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="chime">🔔 Chime</option>
+            <option value="bubble">🫧 Bubble</option>
+            <option value="none">🔇 Silent</option>
+          </select>
+        </div>
+        <button onclick="saveSettings()" class="w-full bg-primary text-white py-4 rounded-2xl font-bold text-lg hover:bg-opacity-90 transition-all">Save Changes</button>
+        <button onclick="resetApp()" class="w-full bg-danger bg-opacity-10 text-danger py-3 rounded-2xl font-bold text-sm">Reset All Data</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Med Modal -->
+  <div id="add-med-modal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-end justify-center">
+    <div class="bg-white rounded-t-3xl w-full max-w-md p-6 slide-up max-h-[85vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-black text-gray-800">💊 Add Medication</h2>
+        <button onclick="closeAddMed()" class="text-gray-400 text-2xl">✕</button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="text-sm font-bold text-gray-500 block mb-1">Medicine Name</label>
+          <input id="med-name" type="text" placeholder="e.g. Amoxicillin" class="w-full bg-gray-100 rounded-xl px-4 py-3 font-semibold focus:outline-none focus:ring-2 focus:ring-primary">
+        </div>
+        <div>
+          <label class="text-sm font-bold text-gray-500 block mb-1">Dose</label>
+          <input id="med-dose" type="text" placeholder="e.g. 1 tablet, 5mL" class="w-full bg-gray-100 rounded-xl px-4 py-3 font-semibold focus:outline-none focus:ring-2 focus:ring-primary">
+        </div>
+        <div>
+          <label class="text-sm font-bold text-gray-500 block mb-1">Emoji Icon</label>
+          <div class="flex gap-2 flex-wrap">
+            <button onclick="selectMedEmoji('💊')" class="med-emoji-btn text-2xl p-2 rounded-xl bg-gray-100 hover:bg-primary hover:bg-opacity-20 border-2 border-transparent" data-emoji="💊">💊</button>
+            <button onclick="selectMedEmoji('💉')" class="med-emoji-btn text-2xl p-2 rounded-xl bg-gray-100 hover:bg-primary hover:bg-opacity-20 border-2 border-transparent" data-emoji="💉">💉</button>
+            <button onclick="selectMedEmoji('🧴')" class="med-emoji-btn text-2xl p-2 rounded-xl bg-gray-100 hover:bg-primary hover:bg-opacity-20 border-2 border-transparent" data-emoji="🧴">🧴</button>
+            <button onclick="selectMedEmoji('💧')" class="med-emoji-btn text-2xl p-2 rounded-xl bg-gray-100 hover:bg-primary hover:bg-opacity-20 border-2 border-transparent" data-emoji="💧">💧</button>
+            <button onclick="selectMedEmoji('🌡️')" class="med-emoji-btn text-2xl p-2 rounded-xl bg-gray-100 hover:bg-primary hover:bg-opacity-20 border-2 border-transparent" data-emoji="🌡️">🌡️</button>
+            <button onclick="selectMedEmoji('🍯')" class="med-emoji-btn text-2xl p-2 rounded-xl bg-gray-100 hover:bg-primary hover:bg-opacity-20 border-2 border-transparent" data-emoji="🍯">🍯</button>
+          </div>
+        </div>
+        <div>
+          <label class="text-sm font-bold text-gray-500 block mb-1">Times per Day</label>
+          <div class="flex gap-2">
+            <button onclick="selectFreq(1)" class="freq-btn flex-1 py-3 rounded-xl bg-gray-100 font-bold text-gray-600 border-2 border-transparent">1x</button>
+            <button onclick="selectFreq(2)" class="freq-btn flex-1 py-3 rounded-xl bg-gray-100 font-bold text-gray-600 border-2 border-transparent">2x</button>
+            <button onclick="selectFreq(3)" class="freq-btn flex-1 py-3 rounded-xl bg-gray-100 font-bold text-gray-600 border-2 border-transparent">3x</button>
+            <button onclick="selectFreq(4)" class="freq-btn flex-1 py-3 rounded-xl bg-gray-100 font-bold text-gray-600 border-2 border-transparent">4x</button>
+          </div>
+        </div>
+        <div id="time-inputs" class="space-y-2"></div>
+        <div>
+          <label class="text-sm font-bold text-gray-500 block mb-1">Special Instructions</label>
+          <input id="med-instructions" type="text" placeholder="e.g. Take with food" class="w-full bg-gray-100 rounded-xl px-4 py-3 font-semibold focus:outline-none focus:ring-2 focus:ring-primary">
+        </div>
+        <button onclick="saveMed()" class="w-full bg-primary text-white py-4 rounded-2xl font-bold text-lg hover:bg-opacity-90 transition-all">Save Medication 💊</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirm-modal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm p-6 bounce-in text-center">
+      <div id="confirm-avatar" class="text-6xl mb-3"></div>
+      <h2 id="confirm-title" class="text-xl font-black text-gray-800 mb-2"></h2>
+      <p id="confirm-text" class="text-gray-500 mb-6"></p>
+      <div id="confirm-actions" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <!-- Reward Animation Overlay -->
+  <div id="reward-overlay" class="hidden fixed inset-0 z-[60] flex items-center justify-center pointer-events-none">
+    <div class="text-center bounce-in">
+      <div id="reward-sticker" class="text-8xl mb-4"></div>
+      <h2 id="reward-text" class="text-2xl font-black text-primary"></h2>
+      <p id="reward-sub" class="text-gray-500 font-semibold"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== GLOBALS ====================
+let aiTotalInputTokens = 0;
+let aiTotalOutputTokens = 0;
+let aiTotalTime = 0;
+let aiAliasTimes = {};
+
+const API_BASE = 'https://16504442930.work';
+
+const AVATARS = [
+  { emoji: '🤖', name: 'Robo' }, { emoji: '🦄', name: 'Sparkle' },
+  { emoji: '🐶', name: 'Buddy' }, { emoji: '🐱', name: 'Whiskers' },
+  { emoji: '🦊', name: 'Foxy' }, { emoji: '🐸', name: 'Hoppy' },
+  { emoji: '🦉', name: 'Owly' }, { emoji: '🐼', name: 'Panda' },
+  { emoji: '🦁', name: 'Leo' }, { emoji: '🐙', name: 'Octo' },
+  { emoji: '🦋', name: 'Flutter' }, { emoji: '🐢', name: 'Shelly' }
+];
+
+const STICKERS = ['⭐', '🌟', '💫', '🏆', '🎖️', '🥇', '🦸', '💪', '🎯', '🌈', '🎉', '🎊', '🍭', '🧁', '🍪', '🎈', '🦄', '🐉', '🚀', '👑'];
+
+const ENCOURAGING_PHRASES = [
+  "You're doing amazing! 🌟", "Super job taking your medicine! 💪",
+  "You're a medicine champion! 🏆", "Way to go, superstar! ⭐",
+  "Your body says thank you! 🎉", "High five! You did it! ✋",
+  "Medicine hero mode activated! 🦸", "Awesome job! Keep it up! 🚀"
+];
+
+let state = {
+  role: null,
+  name: '',
+  avatar: '🤖',
+  avatarName: 'Robo',
+  medications: [],
+  logs: [],
+  stars: 0,
+  streak: 0,
+  lastTakenDate: null,
+  stickers: [],
+  chatHistory: [],
+  schedule: '',
+  sound: 'chime',
+  setupComplete: false,
+  reminderTimers: [],
+  currentTab: 'chat'
+};
+
+// ==================== AI HELPER ====================
+async function callAI(prompt, retries = 3) {
+  const startTime = Date.now();
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const res = await fetch(`${API_BASE}/run_prompt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          alias: 'genericAI',
+          params: { prompt }
+        })
+      });
+      const data = await res.json();
+      const elapsed = Date.now() - startTime;
+      aiTotalTime += elapsed;
+      aiAliasTimes['genericAI'] = (aiAliasTimes['genericAI'] || 0) + elapsed;
+      if (data.input_tokens) aiTotalInputTokens += data.input_tokens;
+      if (data.output_tokens) aiTotalOutputTokens += data.output_tokens;
+      return data;
+    } catch (err) {
+      if (attempt === retries - 1) {
+        const errorMsg = await formatError(err.message || 'Unknown error', JSON.stringify(err));
+        return { error: true, message: errorMsg };
+      }
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+  }
+}
+
+async function formatError(msg, fullResponse) {
+  try {
+    const res = await callAI(`You are a helpful assistant. A user encountered this error: "${msg}". Full API response: ${fullResponse}. Please provide a user-friendly explanation of what went wrong and how they might fix it. Return a JSON object with a single key "message" of type string.`);
+    return res.message || msg;
+  } catch {
+    return msg;
+  }
+}
+
+// ==================== STATE MANAGEMENT ====================
+function loadState() {
+  try {
+    const saved = localStorage.getItem('medbuddy_state');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      state = { ...state, ...parsed };
+    }
+  } catch (e) { console.error('Failed to load state', e); }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem('medbuddy_state', JSON.stringify(state));
+  } catch (e) { console.error('Failed to save state', e); }
+}
+
+// ==================== INITIALIZATION ====================
+function init() {
+  loadState();
+  setTimeout(() => {
+    document.getElementById('splash-screen').classList.add('hidden');
+    if (!state.setupComplete) {
+      document.getElementById('onboarding').classList.remove('hidden');
+    } else {
+      showMainApp();
+    }
+  }, 1500);
+}
+
+// ==================== ONBOARDING ====================
+let selectedRole = null;
+let selectedMedEmoji = '💊';
+let selectedFreq = 1;
+let selectedAvatar = AVATARS[0];
+
+function selectRole(role) {
+  selectedRole = role;
+  state.role = role;
+  document.getElementById('onboard-step-1').classList.add('hidden');
+  document.getElementById('onboard-step-2').classList.remove('hidden');
+  const hints = {
+    child: "What should MedBuddy call you?",
+    parent: "Your name for the parent dashboard",
+    nurse: "Your name for the nurse dashboard",
+    clinician: "Your name for the clinician dashboard"
+  };
+  document.getElementById('name-hint').textContent = hints[role];
+}
+
+function submitName() {
+  const name = document.getElementById('user-name').value.trim();
+  if (!name) { document.getElementById('user-name').classList.add('border-danger'); return; }
+  state.name = name;
+  if (state.role === 'child') {
+    document.getElementById('onboard-step-2').classList.add('hidden');
+    document.getElementById('onboard-step-3').classList.remove('hidden');
+    renderAvatarGrid();
+  } else {
+    finishOnboarding();
+  }
+}
+
+function renderAvatarGrid() {
+  const grid = document.getElementById('avatar-grid');
+  grid.innerHTML = AVATARS.map((a, i) => `
+    <button onclick="pickAvatar(${i})" class="avatar-btn p-4 rounded-2xl bg-white shadow-md hover:shadow-lg transition-all border-2 ${i === 0 ? 'border-primary' : 'border-transparent'} flex flex-col items-center" data-idx="${i}">
+      <span class="text-4xl">${a.emoji}</span>
+      <span class="text-xs font-bold text-gray-500 mt-1">${a.name}</span>
+    </button>
+  `).join('');
+}
+
+function pickAvatar(idx) {
+  selectedAvatar = AVATARS[idx];
+  document.querySelectorAll('.avatar-btn').forEach(b => {
+    b.classList.remove('border-primary');
+    b.classList.add('border-transparent');
+  });
+  document.querySelector(`.avatar-btn[data-idx="${idx}"]`).classList.remove('border-transparent');
+  document.querySelector(`.avatar-btn[data-idx="${idx}"]`).classList.add('border-primary');
+}
+
+function submitAvatar() {
+  state.avatar = selectedAvatar.emoji;
+  state.avatarName = selectedAvatar.name;
+  finishOnboarding();
+}
+
+function finishOnboarding() {
+  state.setupComplete = true;
+  saveState();
+  document.getElementById('onboarding').classList.add('hidden');
+  showMainApp();
+}
+
+// ==================== MAIN APP ====================
+function showMainApp() {
+  document.getElementById('main-header').classList.remove('hidden');
+  document.getElementById('tab-nav').classList.remove('hidden');
+  
+  const avatar = state.role === 'child' ? state.avatar : (state.role === 'nurse' ? '👩‍⚕️' : state.role === 'clinician' ? '🩺' : '👨‍👩‍👧');
+  document.getElementById('header-avatar').textContent = avatar;
+  
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('header-greeting').textContent = `${greeting}, ${state.name}!`;
+  
+  if (state.role === 'child') {
+    document.getElementById('streak-badge').classList.remove('hidden');
+    document.getElementById('stars-badge').classList.remove('hidden');
+    document.getElementById('streak-count').textContent = state.streak;
+    document.getElementById('stars-count').textContent = state.stars;
+  }
+  
+  if (state.role !== 'child') {
+    document.getElementById('tab-dashboard-label').textContent = 
+      state.role === 'nurse' ? 'Nurse' : state.role === 'clinician' ? 'Clinic' : 'Family';
+  }
+  
+  switchTab(state.role === 'child' ? 'chat' : 'dashboard');
+  setupReminders();
+  
+  if (state.chatHistory.length === 0) {
+    generateWelcomeChat();
+  }
+}
+
+// ==================== TAB SWITCHING ====================
+function switchTab(tab) {
+  state.currentTab = tab;
+  ['chat', 'meds', 'progress', 'dashboard'].forEach(t => {
+    document.getElementById(`view-${t}`).classList.add('hidden');
+    document.getElementById(`tab-${t}`).classList.remove('tab-active');
+    document.getElementById(`tab-${t}`).classList.add('text-gray-400');
+  });
+  document.getElementById(`view-${tab}`).classList.remove('hidden');
+  document.getElementById(`tab-${tab}`).classList.add('tab-active');
+  document.getElementById(`tab-${tab}`).classList.remove('text-gray-400');
+  
+  if (tab === 'chat') renderChat();
+  if (tab === 'meds') renderMeds();
+  if (tab === 'progress') renderProgress();
+  if (tab === 'dashboard') renderDashboard();
+}
+
+// ==================== CHAT ====================
+function renderChat() {
+  const container = document.getElementById('chat-messages');
+  container.innerHTML = state.chatHistory.map(msg => {
+    if (msg.type === 'bot') {
+      return `<div class="flex gap-3 slide-up">
+        <div class="w-10 h-10 rounded-full bg-bubbleBot flex items-center justify-center text-xl flex-shrink-0">${state.role === 'child' ? state.avatar : '🤖'}</div>
+        <div class="bg-bubbleBot rounded-2xl rounded-tl-md px-4 py-3 max-w-[80%]">
+          <p class="text-gray-700 font-semibold text-sm">${msg.text}</p>
+          <span class="text-xs text-gray-400 mt-1 block">${formatTime(msg.time)}</span>
+        </div>
+      </div>`;
+    } else if (msg.type === 'user') {
+      return `<div class="flex gap-3 justify-end slide-up">
+        <div class="bg-bubble rounded-2xl rounded-tr-md px-4 py-3 max-w-[80%]">
+          <p class="text-gray-700 font-semibold text-sm">${msg.text}</p>
+          <span class="text-xs text-gray-400 mt-1 block text-right">${formatTime(msg.time)}</span>
+        </div>
+      </div>`;
+    } else if (msg.type === 'action') {
+      return `<div class="text-center py-2 slide-up">
+        <span class="bg-accent bg-opacity-20 text-gray-600 px-4 py-2 rounded-full text-xs font-bold">${msg.text}</span>
+      </div>`;
+    } else if (msg.type === 'reminder') {
+      return `<div class="flex gap-3 slide-up">
+        <div class="w-10 h-10 rounded-full bg-accent bg-opacity-30 flex items-center justify-center text-xl flex-shrink-0">⏰</div>
+        <div class="bg-accent bg-opacity-20 rounded-2xl rounded-tl-md px-4 py-3 max-w-[80%] border-2 border-accent">
+          <p class="text-gray-700 font-bold text-sm">${msg.text}</p>
+          ${msg.medId ? `<div class="flex gap-2 mt-3">
+            <button onclick="confirmMed('${msg.medId}','self')" class="bg-success text-white px-4 py-2 rounded-xl font-bold text-xs flex-1">✅ I took it!</button>
+            <button onclick="confirmMed('${msg.medId}','nurse')" class="bg-primary text-white px-4 py-2 rounded-xl font-bold text-xs flex-1">👩‍⚕️ Nurse gave it</button>
+          </div>` : ''}
+          <span class="text-xs text-gray-400 mt-1 block">${formatTime(msg.time)}</span>
+        </div>
+      </div>`;
+    }
+    return '';
+  }).join('');
+  
+  renderQuickActions();
+  container.scrollTop = container.scrollHeight;
+}
+
+function renderQuickActions() {
+  const actions = document.getElementById('quick-actions');
+  const pendingMeds = getPendingMeds();
+  
+  let buttons = [];
+  if (pendingMeds.length > 0) {
+    buttons.push(`<button onclick="askMedStatus()" class="bg-accent bg-opacity-20 text-gray-700 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap hover:bg-opacity-40 transition-all">💊 Med check</button>`);
+  }
+  if (state.role === 'child') {
+    buttons.push(`<button onclick="askForEncouragement()" class="bg-blue-100 text-blue-600 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap hover:bg-blue-200 transition-all">💪 Pep talk</button>`);
+    buttons.push(`<button onclick="askForFunFact()" class="bg-green-100 text-green-600 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap hover:bg-green-200 transition-all">🧠 Fun fact</button>`);
+    buttons.push(`<button onclick="playMiniGame()" class="bg-purple-100 text-purple-600 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap hover:bg-purple-200 transition-all">🎮 Mini game</button>`);
+  }
+  buttons.push(`<button onclick="askHelp()" class="bg-gray-100 text-gray-500 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap hover:bg-gray-200 transition-all">❓ Help</button>`);
+  
+  actions.innerHTML = buttons.join('');
+}
+
+function addChatMessage(type, text, medId = null) {
+  const msg = { type, text, time: Date.now(), medId };
+  state.chatHistory.push(msg);
+  if (state.chatHistory.length > 100) state.chatHistory = state.chatHistory.slice(-80);
+  saveState();
+  if (state.currentTab === 'chat') renderChat();
+}
+
+function formatTime(ts) {
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+async function generateWelcomeChat() {
+  const childName = state.name;
+  const buddyName = state.avatarName;
+  const role = state.role;
+  
+  if (role === 'child') {
+    addChatMessage('bot', `Hi ${childName}! I'm ${buddyName}, your MedBuddy! ${state.avatar}`);
+    setTimeout(() => {
+      addChatMessage('bot', `I'm here to help you remember your medicine and make it FUN! 🎉`);
+      setTimeout(() => {
+        if (state.medications.length === 0) {
+          addChatMessage('bot', `Let's start by adding your medicines! Ask a parent to help you tap the 💊 Meds tab to add them.`);
+        } else {
+          addChatMessage('bot', `I see you have ${state.medications.length} medicine${state.medications.length > 1 ? 's' : ''} set up! I'll remind you when it's time. Ready to be a medicine champion? 🏆`);
+        }
+      }, 1000);
+    }, 1000);
+  } else {
+    addChatMessage('bot', `Welcome, ${childName}! You're logged in as ${role === 'nurse' ? 'a School Nurse' : role === 'clinician' ? 'a Clinician' : 'a Parent'}.`);
+    addChatMessage('bot', `Use the Dashboard tab to view adherence reports, and the Meds tab to manage medications. I'm here to help! 💬`);
+  }
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  
+  input.value = '';
+  addChatMessage('user', text);
+  
+  showTypingIndicator();
+  
+  const prompt = `You are ${state.avatarName} (${state.avatar}), a friendly, encouraging medication buddy chatbot for a ${state.role === 'child' ? `school-age child named ${state.name}` : `${state.role} named ${state.name}`}. 
+${state.role === 'child' ? 'Use simple, fun language with emojis. Be encouraging about taking medicine. Keep responses short (2-3 sentences max). Never give medical advice - just encourage adherence.' : 'Be professional but warm. Help with medication management questions.'}
+
+Current medications: ${state.medications.map(m => m.name + ' (' + m.dose + ')').join(', ') || 'None added yet'}
+Stars earned: ${state.stars}, Current streak: ${state.streak} days
+Recent adherence: ${state.logs.slice(-5).map(l => l.medName + ' - ' + l.status).join(', ') || 'No logs yet'}
+
+The user says: "${text}"
+
+Return a JSON object with exactly these keys:
+- "reply": string (your response message, max 200 chars)
+- "mood": string (one of: "happy", "encouraging", "playful", "concerned")`;
+
+  try {
+    const response = await callAI(prompt);
+    hideTypingIndicator();
+    if (response && response.reply) {
+      addChatMessage('bot', response.reply);
+    } else if (response && !response.error) {
+      // Try to extract text from response
+      const text = typeof response === 'string' ? response : JSON.stringify(response);
+      addChatMessage('bot', text.substring(0, 200));
+    } else {
+      addChatMessage('bot', `Hmm, I had trouble thinking! Let me try again in a moment. 🤔`);
+    }
+  } catch (err) {
+    hideTypingIndicator();
+    addChatMessage('bot', `Oops! I had a little hiccup. Try again! 😊`);
+  }
+}
+
+function showTypingIndicator() {
+  const container = document.getElementById('chat-messages');
+  const typingEl = document.createElement('div');
+  typingEl.id = 'typing-indicator';
+  typingEl.className = 'flex gap-3 slide-up';
+  typingEl.innerHTML = `
+    <div class="w-10 h-10 rounded-full bg-bubbleBot flex items-center justify-center text-xl flex-shrink-0">${state.avatar}</div>
+    <div class="bg-bubbleBot rounded-2xl rounded-tl-md px-4 py-3">
+      <div class="flex gap-1">
+        <div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+        <div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+        <div class="w-2 h-2 bg-gray-400 rounded-full typing-dot"></div>
+      </div>
+    </div>
+  `;
+  container.appendChild(typingEl);
+  container.scrollTop = container.scrollHeight;
+}
+
+function hideTypingIndicator() {
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
+}
+
+async function askForEncouragement() {
+  addChatMessage('user', 'Can you give me a pep talk? 💪');
+  showTypingIndicator();
+  
+  const prompt = `You are ${state.avatarName}, a cheerful medicine buddy for a child named ${state.name}. Give a short, enthusiastic pep talk about being brave with medicine (2-3 sentences max, use emojis). Their streak is ${state.streak} days and they have ${state.stars} stars. Return JSON with key "reply" as a string.`;
+  
+  try {
+    const res = await callAI(prompt);
+    hideTypingIndicator();
+    addChatMessage('bot', res?.reply || ENCOURAGING_PHRASES[Math.floor(Math.random() * ENCOURAGING_PHRASES.length)]);
+  } catch {
+    hideTypingIndicator();
+    addChatMessage('bot', ENCOURAGING_PHRASES[Math.floor(Math.random() * ENCOURAGING_PHRASES.length)]);
+  }
+}
+
+async function askForFunFact() {
+  addChatMessage('user', 'Tell me a fun fact! 🧠');
+  showTypingIndicator();
+  
+  const prompt = `You are ${state.avatarName}, a fun medicine buddy for a school-age child. Share one amazing, kid-friendly fun fact about the human body or how medicine helps people. Keep it to 2 sentences max, use an emoji. Return JSON with key "reply" as a string.`;
+  
+  try {
+    const res = await callAI(prompt);
+    hideTypingIndicator();
+    addChatMessage('bot', res?.reply || "Did you know your heart beats about 100,000 times a day? That's a LOT of pumping! ❤️");
+  } catch {
+    hideTypingIndicator();
+    addChatMessage('bot', "Did you know your body has about 206 bones? You're like a walking building! 🦴");
+  }
+}
+
+async function playMiniGame() {
+  addChatMessage('user', 'Let\'s play a game! 🎮');
+  showTypingIndicator();
+  
+  const prompt = `You are ${state.avatarName}, a fun chatbot for a child named ${state.name}. Create a simple text-based mini-game interaction: either a riddle, a "would you rather" question, a math puzzle suitable for a school-age child, or a fun trivia question. Keep it short and fun. Return JSON with keys: "reply" (string, the game prompt) and "answer" (string, the answer if applicable).`;
+  
+  try {
+    const res = await callAI(prompt);
+    hideTypingIndicator();
+    addChatMessage('bot', res?.reply || "🎮 Quick quiz! What organ pumps blood through your body? (Hint: it rhymes with 'art') ❤️");
+  } catch {
+    hideTypingIndicator();
+    addChatMessage('bot', "🎮 Riddle time! I have hands but can't clap. What am I? 🤔 (Answer: A clock! ⏰)");
+  }
+}
+
+function askMedStatus() {
+  const pending = getPendingMeds();
+  if (pending.length === 0) {
+    addChatMessage('bot', `All your meds are taken care of! You're a champion! 🏆`);
+    return;
+  }
+  pending.forEach(med => {
+    addChatMessage('reminder', `⏰ Time for ${med.emoji} ${med.name} (${med.dose})! Did you take it?`, med.id);
+  });
+}
+
+function askHelp() {
+  addChatMessage('user', 'How does this work? ❓');
+  const helpText = state.role === 'child' 
+    ? `Here's how I help you! 🌟\n\n💊 **Meds tab** - See your medicines\n⏰ I'll remind you when it's time\n✅ Tap "I took it" when you're done\n⭐ Earn stars and stickers!\n📊 **Progress** - See how awesome you're doing!`
+    : `Here's how MedBuddy works:\n\n💊 **Meds** - Add/manage medications\n💬 **Chat** - Interact with the chatbot\n📊 **Progress** - View adherence stats\n📋 **Dashboard** - Reports & management`;
+  addChatMessage('bot', helpText);
+}
+
+// ==================== MEDICATIONS ====================
+function renderMeds() {
+  const list = document.getElementById('meds-list');
+  const noMeds = document.getElementById('no-meds');
+  const schedSection = document.getElementById('schedule-section');
+  
+  if (state.medications.length === 0) {
+    list.innerHTML = '';
+    noMeds.classList.remove('hidden');
+    schedSection.classList.add('hidden');
+    return;
+  }
+  
+  noMeds.classList.add('hidden');
+  schedSection.classList.remove('hidden');
+  
+  list.innerHTML = state.medications.map(med => {
+    const todayLogs = getTodayLogsForMed(med.id);
+    const totalDoses = med.times.length;
+    const takenDoses = todayLogs.filter(l => l.status === 'taken').length;
+    const pct = Math.round((takenDoses / totalDoses) * 100);
+    
+    return `<div class="bg-white rounded-2xl p-4 shadow-md med-card">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-primary bg-opacity-10 flex items-center justify-center text-2xl">${med.emoji}</div>
+          <div>
+            <h3 class="font-bold text-gray-800">${med.name}</h3>
+            <p class="text-xs text-gray-400 font-semibold">${med.dose} • ${med.times.map(t => t).join(', ')}</p>
+            ${med.instructions ? `<p class="text-xs text-gray-300 mt-1">ℹ️ ${med.instructions}</p>` : ''}
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="text-center">
+            <div class="text-sm font-black ${pct === 100 ? 'text-success' : pct > 0 ? 'text-accent' : 'text-gray-300'}">${takenDoses}/${totalDoses}</div>
+            <div class="text-xs text-gray-400">today</div>
+          </div>
+          <button onclick="deleteMed('${med.id}')" class="text-gray-300 hover:text-danger transition-all p-2">🗑️</button>
+        </div>
+      </div>
+      <div class="mt-3 w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+        <div class="h-full bg-gradient-to-r ${pct === 100 ? 'from-success to-green-400' : 'from-primary to-secondary'} rounded-full transition-all duration-500" style="width:${pct}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+  
+  renderSchedule();
+}
+
+function renderSchedule() {
+  const list = document.getElementById('schedule-list');
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  
+  let scheduleItems = [];
+  state.medications.forEach(med => {
+    med.times.forEach(time => {
+      const [h, m] = time.split(':').map(Number);
+      const timeMinutes = h * 60 + m;
+      const todayLogs = getTodayLogsForMed(med.id);
+      const taken = todayLogs.some(l => l.timeSlot === time && l.status === 'taken');
+      
+      scheduleItems.push({
+        med, time, timeMinutes, taken,
+        isPast: timeMinutes < currentMinutes,
+        isCurrent: Math.abs(timeMinutes - currentMinutes) < 30
+      });
+    });
+  });
+  
+  scheduleItems.sort((a, b) => a.timeMinutes - b.timeMinutes);
+  
+  list.innerHTML = scheduleItems.map(item => {
+    const statusClass = item.taken ? 'bg-success bg-opacity-10 border-success' : 
+                        item.isCurrent ? 'bg-accent bg-opacity-10 border-accent pulse-glow' : 
+                        item.isPast ? 'bg-danger bg-opacity-10 border-danger' : 
+                        'bg-gray-50 border-gray-200';
+    const statusIcon = item.taken ? '✅' : item.isCurrent ? '⏰' : item.isPast ? '❌' : '⏳';
+    
+    return `<div class="rounded-xl p-3 border-2 ${statusClass} flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-xl">${statusIcon}</span>
+        <div>
+          <span class="font-bold text-gray-700 text-sm">${item.med.emoji} ${item.med.name}</span>
+          <span class="text-gray-400 text-xs ml-2">${item.time}</span>
+        </div>
+      </div>
+      ${!item.taken ? `<button onclick="confirmMed('${item.med.id}','self','${item.time}')" class="bg-primary text-white px-3 py-1 rounded-lg text-xs font-bold">Take</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ==================== ADD MEDICATION ====================
+function openAddMed() {
+  document.getElementById('add-med-modal').classList.remove('hidden');
+  selectedMedEmoji = '💊';
+  selectedFreq = 1;
+  document.getElementById('med-name').value = '';
+  document.getElementById('med-dose').value = '';
+  document.getElementById('med-instructions').value = '';
+  selectMedEmoji('💊');
+  selectFreq(1);
+}
+
+function closeAddMed() {
+  document.getElementById('add-med-modal').classList.add('hidden');
+}
+
+function selectMedEmoji(emoji) {
+  selectedMedEmoji = emoji;
+  document.querySelectorAll('.med-emoji-btn').forEach(b => {
+    b.classList.remove('border-primary');
+    b.classList.add('border-transparent');
+  });
+  document.querySelector(`.med-emoji-btn[data-emoji="${emoji}"]`).classList.add('border-primary');
+  document.querySelector(`.med-emoji-btn[data-emoji="${emoji}"]`).classList.remove('border-transparent');
+}
+
+function selectFreq(n) {
+  selectedFreq = n;
+  document.querySelectorAll('.freq-btn').forEach(b => {
+    b.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10', 'text-primary');
+    b.classList.add('border-transparent');
+  });
+  document.querySelectorAll('.freq-btn')[n - 1].classList.add('border-primary', 'bg-primary', 'bg-opacity-10', 'text-primary');
+  document.querySelectorAll('.freq-btn')[n - 1].classList.remove('border-transparent');
+  
+  const container = document.getElementById('time-inputs');
+  const defaults = ['08:00', '12:00', '16:00', '20:00'];
+  container.innerHTML = Array.from({ length: n }, (_, i) => `
+    <div>
+      <label class="text-sm font-bold text-gray-500 block mb-1">Time ${i + 1}</label>
+      <input type="time" value="${defaults[i] || '08:00'}" class="med-time-input w-full bg-gray-100 rounded-xl px-4 py-3 font-semibold focus:outline-none focus:ring-2 focus:ring-primary">
+    </div>
+  `).join('');
+}
+
+function saveMed() {
+  const name = document.getElementById('med-name').value.trim();
+  const dose = document.getElementById('med-dose').value.trim();
+  const instructions = document.getElementById('med-instructions').value.trim();
+  
+  if (!name || !dose) {
+    if (!name) document.getElementById('med-name').classList.add('border-danger');
+    if (!dose) document.getElementById('med-dose').classList.add('border-danger');
+    return;
+  }
+  
+  const times = Array.from(document.querySelectorAll('.med-time-input')).map(i => i.value);
+  
+  const med = {
+    id: 'med_' + Date.now(),
+    name,
+    dose,
+    emoji: selectedMedEmoji,
+    times,
+    instructions,
+    createdAt: Date.now()
+  };
+  
+  state.medications.push(med);
+  saveState();
+  closeAddMed();
+  renderMeds();
+  setupReminders();
+  
+  addChatMessage('action', `${med.emoji} ${med.name} added to your medications!`);
+  if (state.role === 'child') {
+    addChatMessage('bot', `Great! I'll remind you to take ${med.name} at ${times.join(' and ')}! Let's do this! 💪`);
+  }
+}
+
+function deleteMed(id) {
+  if (confirm('Remove this medication?')) {
+    state.medications = state.medications.filter(m => m.id !== id);
+    saveState();
+    renderMeds();
+    setupReminders();
+  }
+}
+
+// ==================== CONFIRMATION ====================
+function confirmMed(medId, method, timeSlot = null) {
+  const med = state.medications.find(m => m.id === medId);
+  if (!med) return;
+  
+  if (!timeSlot) {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    let closest = med.times[0];
+    let closestDiff = Infinity;
+    med.times.forEach(t => {
+      const [h, m] = t.split(':').map(Number);
+      const diff = Math.abs((h * 60 + m) - currentMinutes);
+      if (diff < closestDiff) { closestDiff = diff; closest = t; }
+    });
+    timeSlot = closest;
+  }
+  
+  // Check if already logged
+  const already = state.logs.some(l => 
+    l.medId === medId && 
+    l.timeSlot === timeSlot && 
+    l.status === 'taken' &&
+    new Date(l.timestamp).toDateString() === new Date().toDateString()
+  );
+  
+  if (already) {
+    addChatMessage('bot', `You already took ${med.name} for this time! Keep it up! ✅`);
+    return;
+  }
+  
+  const methodLabel = method === 'self' ? 'Self-reported' : method === 'nurse' ? 'Nurse confirmed' : 'Photo confirmed';
+  
+  const log = {
+    id: 'log_' + Date.now(),
+    medId,
+    medName: med.name,
+    medEmoji: med.emoji,
+    dose: med.dose,
+    timeSlot,
+    status: 'taken',
+    method: methodLabel,
+    timestamp: Date.now(),
+    confirmedBy: state.name
+  };
+  
+  state.logs.push(log);
+  
+  // Award stars
+  state.stars += 5;
+  
+  // Update streak
+  const today = new Date().toDateString();
+  if (state.lastTakenDate !== today) {
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    if (state.lastTakenDate === yesterday) {
+      state.streak += 1;
+    } else if (state.lastTakenDate !== today) {
+      state.streak = 1;
+    }
+    state.lastTakenDate = today;
+  }
+  
+  // Award sticker occasionally
+  if (Math.random() < 0.3 || state.logs.filter(l => l.status === 'taken').length % 5 === 0) {
+    const newSticker = STICKERS[Math.floor(Math.random() * STICKERS.length)];
+    state.stickers.push({ emoji: newSticker, earnedAt: Date.now() });
+    showReward(newSticker, `New Sticker!`, `You earned a ${newSticker} sticker!`);
+  } else {
+    showReward('⭐', '+5 Stars!', ENCOURAGING_PHRASES[Math.floor(Math.random() * ENCOURAGING_PHRASES.length)]);
+  }
+  
+  document.getElementById('streak-count').textContent = state.streak;
+  document.getElementById('stars-count').textContent = state.stars;
+  
+  saveState();
+  
+  addChatMessage('action', `✅ ${med.emoji} ${med.name} taken! (${methodLabel})`);
+  addChatMessage('bot', ENCOURAGING_PHRASES[Math.floor(Math.random() * ENCOURAGING_PHRASES.length)]);
+  
+  if (state.currentTab === 'meds') renderMeds();
+  if (state.currentTab === 'progress') renderProgress();
+  
+  // Fire confetti
+  confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 }, colors: ['#6C5CE7', '#00CEC9', '#FDCB6E', '#FF6B6B'] });
+}
+
+function showReward(sticker, text, sub) {
+  const overlay = document.getElementById('reward-overlay');
+  document.getElementById('reward-sticker').textContent = sticker;
+  document.getElementById('reward-text').textContent = text;
+  document.getElementById('reward-sub').textContent = sub;
+  overlay.classList.remove('hidden');
+  setTimeout(() => overlay.classList.add('hidden'), 2500);
+}
+
+// ==================== REMINDERS ====================
+function setupReminders() {
+  // Clear existing
+  state.reminderTimers.forEach(t => clearTimeout(t));
+  state.reminderTimers = [];
+  
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  
+  state.medications.forEach(med => {
+    med.times.forEach(time => {
+      const [h, m] = time.split(':').map(Number);
+      const medMinutes = h * 60 + m;
+      let delay = (medMinutes - currentMinutes) * 60 * 1000;
+      
+      if (delay > 0 && delay < 86400000) {
+        const timer = setTimeout(() => {
+          triggerReminder(med, time);
+        }, delay);
+        state.reminderTimers.push(timer);
+      }
+      
+      // Also set 5 min warning
+      let warningDelay = delay - 5 * 60 * 1000;
+      if (warningDelay > 0 && warningDelay < 86400000) {
+        const wTimer = setTimeout(() => {
+          addChatMessage('bot', `Heads up! ${med.emoji} ${med.name} time in 5 minutes! Get ready! ⏰`);
+        }, warningDelay);
+        state.reminderTimers.push(wTimer);
+      }
+    });
+  });
+}
+
+function triggerReminder(med, timeSlot) {
+  const todayLogs = getTodayLogsForMed(med.id);
+  const alreadyTaken = todayLogs.some(l => l.timeSlot === timeSlot && l.status === 'taken');
+  
+  if (!alreadyTaken) {
+    addChatMessage('reminder', `🔔 Hey ${state.name}! Time for ${med.emoji} ${med.name} (${med.dose})!`, med.id);
+    
+    if (state.sound !== 'none') {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = state.sound === 'bubble' ? 800 : 523;
+        gain.gain.value = 0.3;
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+      } catch (e) {}
+    }
+    
+    // Switch to chat if not already there
+    if (state.currentTab !== 'chat') {
+      switchTab('chat');
+    }
+  }
+}
+
+// ==================== PROGRESS ====================
+function renderProgress() {
+  const weekLogs = getWeekLogs();
+  const totalExpected = getWeekExpectedDoses();
+  const totalTaken = weekLogs.filter(l => l.status === 'taken').length;
+  const pct = totalExpected > 0 ? Math.round((totalTaken / totalExpected) * 100) : 0;
+  
+  document.getElementById('weekly-pct').textContent = pct + '%';
+  document.getElementById('weekly-bar').style.width = pct + '%';
+  
+  const allTaken = state.logs.filter(l => l.status === 'taken').length;
+  const allMissed = state.logs.filter(l => l.status === 'missed').length;
+  document.getElementById('stat-taken').textContent = allTaken;
+  document.getElementById('stat-missed').textContent = allMissed;
+  document.getElementById('stat-streak').textContent = state.streak;
+  
+  // Sticker collection
+  const stickerContainer = document.getElementById('sticker-collection');
+  const noStickers = document.getElementById('no-stickers');
+  if (state.stickers.length === 0) {
+    stickerContainer.innerHTML = '';
+    noStickers.classList.remove('hidden');
+  } else {
+    noStickers.classList.add('hidden');
+    stickerContainer.innerHTML = state.stickers.slice(-20).map(s => 
+      `<span class="sticker text-3xl" title="Earned ${new Date(s.earnedAt).toLocaleDateString()}">${s.emoji}</span>`
+    ).join('');
+  }
+  
+  // Week calendar
+  const weekCal = document.getElementById('week-calendar');
+  const today = new Date();
+  const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+  
+  weekCal.innerHTML = Array.from({ length: 7 }, (_, i) => {
+    const day = new Date(startOfWeek);
+    day.setDate(startOfWeek.getDate() + i);
+    const dayStr = day.toDateString();
+    const isToday = dayStr === today.toDateString();
+    const dayLogs = state.logs.filter(l => new Date(l.timestamp).toDateString() === dayStr);
+    const hasTaken = dayLogs.some(l => l.status === 'taken');
+    const allTakenForDay = state.medications.length > 0 && dayLogs.filter(l => l.status === 'taken').length >= state.medications.reduce((sum, m) => sum + m.times.length, 0);
+    
+    const bgClass = allTakenForDay ? 'bg-success text-white' : hasTaken ? 'bg-accent text-gray-700' : isToday ? 'bg-primary bg-opacity-10 text-primary' : 'bg-gray-50 text-gray-400';
+    
+    return `<div class="text-center">
+      <div class="text-xs font-bold text-gray-400 mb-1">${dayNames[i]}</div>
+      <div class="${bgClass} w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm mx-auto ${isToday ? 'ring-2 ring-primary' : ''}">
+        ${day.getDate()}
+      </div>
+    </div>`;
+  }).join('');
+  
+  // Recent log
+  const logList = document.getElementById('log-list');
+  const recentLogs = state.logs.slice(-15).reverse();
+  logList.innerHTML = recentLogs.length === 0 ? '<p class="text-gray-300 text-sm text-center py-4">No activity yet</p>' :
+    recentLogs.map(l => `
+      <div class="flex items-center justify-between py-2 border-b border-gray-50">
+        <div class="flex items-center gap-2">
+          <span>${l.status === 'taken' ? '✅' : '❌'}</span>
+          <div>
+            <span class="text-sm font-bold text-gray-700">${l.medEmoji || '💊'} ${l.medName}</span>
+            <span class="text-xs text-gray-400 ml-1">${l.method || ''}</span>
+          </div>
+        </div>
+        <span class="text-xs text-gray-400">${new Date(l.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+      </div>
+    `).join('');
+}
+
+// ==================== DASHBOARD ====================
+async function renderDashboard() {
+  const content = document.getElementById('dashboard-content');
+  const role = state.role;
+  
+  if (role === 'child') {
+    // Simple progress overview for kids
+    renderProgress();
+    switchTab('progress');
+    return;
+  }
+  
+  const totalLogs = state.logs.length;
+  const takenLogs = state.logs.filter(l => l.status === 'taken').length;
+  const adherenceRate = totalLogs > 0 ? Math.round((takenLogs / totalLogs) * 100) : 0;
+  
+  let html = `
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="bg-white rounded-2xl p-4 shadow-md text-center">
+        <div class="text-3xl font-black text-primary">${state.medications.length}</div>
+        <div class="text-xs text-gray-400 font-bold mt-1">Active Meds</div>
+      </div>
+      <div class="bg-white rounded-2xl p-4 shadow-md text-center">
+        <div class="text-3xl font-black ${adherenceRate >= 80 ? 'text-success' : adherenceRate >= 50 ? 'text-accent' : 'text-danger'}">${adherenceRate}%</div>
+        <div class="text-xs text-gray-400 font-bold mt-1">Adherence Rate</div>
+      </div>
+      <div class="bg-white rounded-2xl p-4 shadow-md text-center">
+        <div class="text-3xl font-black text-secondary">${state.streak}</div>
+        <div class="text-xs text-gray-400 font-bold mt-1">Day Streak</div>
+      </div>
+      <div class="bg-white rounded-2xl p-4 shadow-md text-center">
+        <div class="text-3xl font-black text-accent">${totalLogs}</div>
+        <div class="text-xs text-gray-400 font-bold mt-1">Total Logs</div>
+      </div>
+    </div>`;
+  
+  if (role === 'nurse') {
+    html += `
+      <div class="bg-white rounded-2xl p-5 shadow-md mb-4">
+        <h3 class="font-bold text-gray-700 mb-3">👩‍⚕️ Nurse Actions</h3>
+        <div class="space-y-2">
+          ${state.medications.map(med => {
+            const pending = !getTodayLogsForMed(med.id).some(l => l.status === 'taken' && l.timeSlot === getClosestTimeSlot(med));
+            return `<div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+              <div>
+                <span class="font-bold text-sm">${med.emoji} ${med.name}</span>
+                <span class="text-xs text-gray-400 ml-1">${med.dose}</span>
+              </div>
+              ${pending ? `<button onclick="nurseConfirm('${med.id}')" class="bg-success text-white px-3 py-2 rounded-lg text-xs font-bold">Confirm Given</button>` : '<span class="text-success text-xs font-bold">✅ Done</span>'}
+            </div>`;
+          }).join('') || '<p class="text-gray-300 text-sm">No medications configured</p>'}
+        </div>
+      </div>`;
+  }
+  
+  // Adherence trend alert
+  if (adherenceRate < 70 && totalLogs > 5) {
+    html += `
+      <div class="bg-danger bg-opacity-10 border-2 border-danger rounded-2xl p-4 mb-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-xl">⚠️</span>
+          <h3 class="font-bold text-danger">Low Adherence Alert</h3>
+        </div>
+        <p class="text-sm text-gray-600">Adherence rate is below 70%. Consider reviewing the medication schedule and timing.</p>
+      </div>`;
+  }
+  
+  html += `
+    <div class="bg-white rounded-2xl p-5 shadow-md mb-4">
+      <h3 class="font-bold text-gray-700 mb-3">📊 Medication Details</h3>
+      ${state.medications.map(med => {
+        const medLogs = state.logs.filter(l => l.medId === med.id);
+        const medTaken = medLogs.filter(l => l.status === 'taken').length;
+        const medPct = medLogs.length > 0 ? Math.round((medTaken / medLogs.length) * 100) : 0;
+        return `<div class="mb-3 pb-3 border-b border-gray-100 last:border-0">
+          <div class="flex justify-between items-center mb-1">
+            <span class="font-bold text-sm text-gray-700">${med.emoji} ${med.name}</span>
+            <span class="text-sm font-black ${medPct >= 80 ? 'text-success' : 'text-danger'}">${medPct}%</span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+            <div class="h-full bg-gradient-to-r ${medPct >= 80 ? 'from-success to-green-400' : 'from-danger to-red-400'} rounded-full" style="width:${medPct}%"></div>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">${med.dose} • ${med.times.join(', ')} • ${medTaken} doses logged</p>
+        </div>`;
+      }).join('') || '<p class="text-gray-300 text-sm">No medications configured</p>'}
+    </div>
+    
+    <button onclick="generateReport()" class="w-full bg-primary text-white py-4 rounded-2xl font-bold text-lg hover:bg-opacity-90 transition-all mb-4">📄 Generate AI Report</button>
+    
+    <div id="ai-report" class="hidden bg-white rounded-2xl p-5 shadow-md mb-4">
+      <h3 class="font-bold text-gray-700 mb-3">📄 AI Compliance Report</h3>
+      <div id="ai-report-content" class="text-sm text-gray-600 whitespace-pre-wrap"></div>
+    </div>
+    
+    <div class="bg-white rounded-2xl p-5 shadow-md mb-4">
+      <h3 class="font-bold text-gray-700 mb-3">📝 Full Activity Log</h3>
+      <div class="space-y-2 max-h-60 overflow-y-auto no-scrollbar">
+        ${state.logs.slice().reverse().slice(0, 30).map(l => `
+          <div class="flex items-center justify-between py-2 border-b border-gray-50 text-sm">
+            <div>
+              <span>${l.status === 'taken' ? '✅' : '❌'}</span>
+              <span class="font-semibold text-gray-700 ml-1">${l.medName}</span>
+              <span class="text-gray-400 text-xs ml-1">(${l.method})</span>
+            </div>
+            <span class="text-xs text-gray-400">${new Date(l.timestamp).toLocaleString()}</span>
+          </div>
+        `).join('') || '<p class="text-gray-300 text-sm text-center py-4">No logs yet</p>'}
+      </div>
+    </div>`;
+  
+  content.innerHTML = html;
+}
+
+function nurseConfirm(medId) {
+  confirmMed(medId, 'nurse');
+  renderDashboard();
+}
+
+async function generateReport() {
+  const reportDiv = document.getElementById('ai-report');
+  const reportContent = document.getElementById('ai-report-content');
+  reportDiv.classList.remove('hidden');
+  reportContent.textContent = 'Generating report... ⏳';
+  
+  const logsStr = state.logs.slice(-50).map(l => 
+    `${new Date(l.timestamp).toLocaleString()} - ${l.medName} ${l.dose} - ${l.status} (${l.method})`
+  ).join('\n');
+  
+  const medsStr = state.medications.map(m => `${m.name} ${m.dose} at ${m.times.join(', ')}`).join('; ');
+  
+  const prompt = `You are a pediatric medication adherence analyst. Generate a concise compliance report for a school-age patient.
+
+Medications: ${medsStr || 'None'}
+Current streak: ${state.streak} days
+Total stars: ${state.stars}
+
+Recent medication logs (most recent 50):
+${logsStr || 'No logs available'}
+
+Generate a professional but warm compliance report that includes:
+1. Overall adherence summary
+2. Medication-specific observations
+3. Trend analysis (improving/declining/stable)
+4. Recommendations
+5. Any flagged concerns
+
+Return JSON with a single key "report" as a string (use \\n for newlines).`;
+
+  try {
+    const res = await callAI(prompt);
+    reportContent.textContent = res?.report || 'Unable to generate report. Please check medication logs and try again.';
+  } catch {
+    reportContent.textContent = 'Error generating report. Please try again later.';
+  }
+}
+
+// ==================== HELPERS ====================
+function getTodayLogsForMed(medId) {
+  const today = new Date().toDateString();
+  return state.logs.filter(l => l.medId === medId && new Date(l.timestamp).toDateString() === today);
+}
+
+function getPendingMeds() {
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const pending = [];
+  
+  state.medications.forEach(med => {
+    med.times.forEach(time => {
+      const [h, m] = time.split(':').map(Number);
+      const medMinutes = h * 60 + m;
+      if (medMinutes <= currentMinutes + 15) {
+        const todayLogs = getTodayLogsForMed(med.id);
+        if (!todayLogs.some(l => l.timeSlot === time && l.status === 'taken')) {
+          if (!pending.some(p => p.id === med.id)) {
+            pending.push(med);
+          }
+        }
+      }
+    });
+  });
+  
+  return pending;
+}
+
+function getClosestTimeSlot(med) {
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  let closest = med.times[0];
+  let closestDiff = Infinity;
+  med.times.forEach(t => {
+    const [h, m] = t.split(':').map(Number);
+    const diff = Math.abs((h * 60 + m) - currentMinutes);
+    if (diff < closestDiff) { closestDiff = diff; closest = t; }
+  });
+  return closest;
+}
+
+function getWeekLogs() {
+  const weekAgo = Date.now() - 7 * 86400000;
+  return state.logs.filter(l => l.timestamp >= weekAgo);
+}
+
+function getWeekExpectedDoses() {
+  return state.medications.reduce((sum, m) => sum + m.times.length * 7, 0);
+}
+
+// ==================== SETTINGS ====================
+function openSettings() {
+  document.getElementById('settings-modal').classList.remove('hidden');
+  document.getElementById('settings-name').value = state.name;
+  document.getElementById('settings-schedule').value = state.schedule || '';
+  document.getElementById('settings-sound').value = state.sound || 'chime';
+}
+
+function closeSettings() {
+  document.getElementById('settings-modal').classList.add('hidden');
+}
+
+function saveSettings() {
+  state.name = document.getElementById('settings-name').value.trim() || state.name;
+  state.schedule = document.getElementById('settings-schedule').value;
+  state.sound = document.getElementById('settings-sound').value;
+  saveState();
+  closeSettings();
+  document.getElementById('header-greeting').textContent = `Hi, ${state.name}!`;
+}
+
+function resetApp() {
+  if (confirm('Reset all data? This cannot be undone!')) {
+    localStorage.removeItem('medbuddy_state');
+    location.reload();
+  }
+}
+
+// ==================== PERIODIC CHECK ====================
+setInterval(() => {
+  // Check for missed doses every minute
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  
+  state.medications.forEach(med => {
+    med.times.forEach(time => {
+      const [h, m] = time.split(':').map(Number);
+      const medMinutes = h * 60 + m;
+      // If 30 min past due and not taken
+      if (currentMinutes - medMinutes >= 30 && currentMinutes - medMinutes < 32) {
+        const todayLogs = getTodayLogsForMed(med.id);
+        if (!todayLogs.some(l => l.timeSlot === time && l.status === 'taken')) {
+          // Log as missed
+          state.logs.push({
+            id: 'log_' + Date.now(),
+            medId: med.id,
+            medName: med.name,
+            medEmoji: med.emoji,
+            dose: med.dose,
+            timeSlot: time,
+            status: 'missed',
+            method: 'auto-detected',
+            timestamp: Date.now()
+          });
+          saveState();
+          addChatMessage('bot', `Oh no, it looks like you missed ${med.emoji} ${med.name} at ${time}. It's okay! Try to take it if you still can, or talk to your nurse. 💙`);
+        }
+      }
+    });
+  });
+}, 60000);
+
+// ==================== DEMO DATA HELPER ====================
+function addDemoData() {
+  if (state.medications.length === 0) {
+    state.medications = [
+      { id: 'med_demo1', name: 'Vitamin D', dose: '1 tablet', emoji: '💊', times: ['08:00', '20:00'], instructions: 'Take with food', createdAt: Date.now() },
+      { id: 'med_demo2', name: 'Allergy Medicine', dose: '5mL', emoji: '🧴', times: ['12:00'], instructions: 'Shake before use', createdAt: Date.now() }
+    ];
+    
+    // Add some historical logs
+    for (let d = 6; d >= 0; d--) {
+      const dayTs = Date.now() - d * 86400000;
+      state.medications.forEach(med => {
+        med.times.forEach(time => {
+          if (Math.random() > 0.15) {
+            state.logs.push({
+              id: 'log_demo_' + Date.now() + Math.random(),
+              medId: med.id,
+              medName: med.name,
+              medEmoji: med.emoji,
+              dose: med.dose,
+              timeSlot: time,
+              status: 'taken',
+              method: Math.random() > 0.5 ? 'Self-reported' : 'Nurse confirmed',
+              timestamp: dayTs
+            });
+          }
+        });
+      });
+    }
+    
+    state.stars = 45;
+    state.streak = 5;
+    state.stickers = STICKERS.slice(0, 6).map(s => ({ emoji: s, earnedAt: Date.now() - Math.random() * 604800000 }));
+    state.lastTakenDate = new Date().toDateString();
+    saveState();
+  }
+}
+
+// ==================== START ====================
+init();
+
+// If first time child user, optionally inject demo data after onboarding
+const originalFinish = finishOnboarding;
+finishOnboarding = function() {
+  originalFinish();
+  // Small delay to let main app render
+  setTimeout(() => {
+    if (state.role === 'child' && state.medications.length === 0) {
+      // Ask if they want demo data
+      addChatMessage('bot', `Would you like me to add some example medicines so you can try out MedBuddy? Just say "demo" in the chat! 🎉`);
+    }
+  }, 3000);
+};
+
+// Handle demo command in chat
+const originalSendMessage = sendMessage;
+sendMessage = async function() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim().toLowerCase();
+  
+  if (text === 'demo') {
+    input.value = '';
+    addChatMessage('user', 'demo');
+    addDemoData();
+    addChatMessage('action', '🎮 Demo data loaded!');
+    addChatMessage('bot', `Awesome! I added Vitamin D and Allergy Medicine with some history so you can explore! Check the 💊 Meds and 📊 Progress tabs! 🌟`);
+    setupReminders();
+    return;
+  }
+  
+  return originalSendMessage.call(this);
+};
+</script>
+</body>
+</html>
